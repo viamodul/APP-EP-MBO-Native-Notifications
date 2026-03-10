@@ -1,5 +1,8 @@
 <?php
 
+// Suppress PHP 8.5 deprecation warnings (PDO::MYSQL_ATTR_SSL_CA)
+error_reporting(E_ALL & ~E_DEPRECATED);
+
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 

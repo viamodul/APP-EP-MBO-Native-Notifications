@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'epages' => [
+        'webhook_url' => env('WEBHOOK_URL', 'http://localhost:3000/webhook'),
+        'skip_historical_orders' => env('POLL_SKIP_HISTORICAL_ORDERS', false),
+    ],
+
 ];

@@ -33,6 +33,13 @@ class PollShopOrders implements ShouldQueue
         $webhookService = new WebhookService();
 
         $since = $this->shop->last_processed_order_date;
+
+        // On first run, skip historical orders if configured (useful for production)
+        if (is_null($since) && config('services.epages.skip_historical_orders', false)) {
+            $since = now();
+            Log::info('First poll: skipping historical orders, starting from now', ['shop_id' => $this->shop->id]);
+        }
+
         $orders = $apiService->getOrders($since);
 
         $newOrdersCount = 0;
@@ -40,7 +47,7 @@ class PollShopOrders implements ShouldQueue
 
         foreach ($orders as $order) {
             $orderDate = $this->parseOrderDate($order);
-            
+
             if ($since && $orderDate <= $since) {
                 continue;
             }
