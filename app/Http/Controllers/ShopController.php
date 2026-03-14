@@ -23,13 +23,15 @@ class ShopController extends Controller
             'shop_url' => 'required|url',
             'epages_version' => 'required|in:now,base',
             'api_token' => 'required|string',
+            'webhook_url' => 'nullable|url',
             'polling_interval_minutes' => 'integer|min:1|max:1440',
             'group_name' => 'nullable|string|max:255',
             'active' => 'boolean',
         ]);
 
+        $validated['source'] = 'api';
         $shop = Shop::create($validated);
-        
+
         return response()->json($shop, 201);
     }
 
@@ -83,10 +85,69 @@ class ShopController extends Controller
         }
 
         PollShopOrders::dispatch($shop);
-        
+
         return response()->json([
             'message' => 'Polling job dispatched for shop',
             'shop_id' => $shop->id,
+        ]);
+    }
+
+    public function lookup(Request $request): JsonResponse
+    {
+        $request->validate([
+            'shop_url' => 'required|url',
+        ]);
+
+        $shopUrl = $request->query('shop_url');
+        $shop = Shop::where('shop_url', $shopUrl)->first();
+
+        if (!$shop) {
+            return response()->json([
+                'exists' => false,
+                'message' => 'Shop not found',
+            ], 404);
+        }
+
+        return response()->json([
+            'exists' => true,
+            'id' => $shop->id,
+            'name' => $shop->name,
+            'active' => $shop->active,
+            'webhook_url' => $shop->getRawOriginal('webhook_url'),
+            'webhook_configured' => !empty($shop->getRawOriginal('webhook_url')),
+            'polling_interval_minutes' => $shop->polling_interval_minutes,
+            'last_order_check' => $shop->last_order_check,
+            'created_at' => $shop->created_at,
+        ]);
+    }
+
+    public function destroyByUrl(Request $request): JsonResponse
+    {
+        $request->validate([
+            'shop_url' => 'required|url',
+        ]);
+
+        // Accept shop_url from body or query string
+        $shopUrl = $request->input('shop_url');
+        $shop = Shop::where('shop_url', $shopUrl)->first();
+
+        if (!$shop) {
+            return response()->json([
+                'message' => 'Shop not found',
+            ], 404);
+        }
+
+        $shopId = $shop->id;
+        $shopName = $shop->name;
+        $shop->delete();
+
+        return response()->json([
+            'message' => 'Shop deleted successfully',
+            'deleted_shop' => [
+                'id' => $shopId,
+                'name' => $shopName,
+                'shop_url' => $shopUrl,
+            ],
         ]);
     }
 }

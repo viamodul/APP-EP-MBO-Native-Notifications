@@ -10,30 +10,30 @@ use Carbon\Carbon;
 
 class WebhookService
 {
-    protected string $webhookUrl;
-
-    public function __construct()
-    {
-        $this->webhookUrl = config('services.webhook.url', env('WEBHOOK_URL'));
-    }
-
     public function sendOrderWebhook(Shop $shop, array $orderData): WebhookLog
     {
         $payload = $this->createWebhookPayload($shop, $orderData);
-        
+        $webhookUrl = $this->getWebhookUrl($shop);
+
         $webhookLog = WebhookLog::create([
             'shop_id' => $shop->id,
             'order_id' => $orderData['orderId'] ?? $orderData['id'] ?? '',
             'order_created_at' => $this->parseOrderDate($orderData),
             'order_data' => $orderData,
             'webhook_payload' => $payload,
-            'webhook_url' => $this->webhookUrl,
+            'webhook_url' => $webhookUrl,
             'status' => 'pending',
         ]);
 
         $this->deliverWebhook($webhookLog);
 
         return $webhookLog;
+    }
+
+    protected function getWebhookUrl(Shop $shop): string
+    {
+        // Shop-specific webhook URL takes priority, then fallback to global config
+        return $shop->webhook_url ?? config('services.epages.webhook_url', env('WEBHOOK_URL'));
     }
 
     protected function createWebhookPayload(Shop $shop, array $orderData): array
@@ -65,7 +65,9 @@ class WebhookService
 
     protected function deliverWebhook(WebhookLog $webhookLog): void
     {
-        if (!$this->webhookUrl) {
+        $webhookUrl = $webhookLog->webhook_url;
+
+        if (!$webhookUrl) {
             Log::warning('Webhook URL not configured', ['webhook_log_id' => $webhookLog->id]);
             $webhookLog->update([
                 'status' => 'failed',
@@ -75,13 +77,19 @@ class WebhookService
         }
 
         try {
-            $response = Http::timeout(30)
+            $http = Http::timeout(30)
                 ->withHeaders([
                     'Content-Type' => 'application/json',
                     'X-Webhook-Source' => 'epages-webhook-simulator',
                     'X-Shop-Id' => (string) $webhookLog->shop_id,
-                ])
-                ->post($this->webhookUrl, $webhookLog->webhook_payload);
+                ]);
+
+            // Disable SSL verification in local/development environments
+            if (app()->environment('local', 'development')) {
+                $http = $http->withOptions(['verify' => false]);
+            }
+
+            $response = $http->post($webhookUrl, $webhookLog->webhook_payload);
 
             $webhookLog->update([
                 'response_status' => $response->status(),
