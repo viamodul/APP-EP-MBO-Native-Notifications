@@ -12,3 +12,13 @@ Schedule::command('shops:poll')
     ->everyFiveMinutes()
     ->withoutOverlapping()
     ->runInBackground();
+
+Schedule::command('webhooks:cleanup')
+    ->daily()
+    ->at('03:00')
+    ->runInBackground();
+
+Schedule::command('subscriptions:send-trial-reminders')
+    ->daily()
+    ->at('09:00')
+    ->runInBackground();

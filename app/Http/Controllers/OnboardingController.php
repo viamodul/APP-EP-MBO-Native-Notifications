@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Shop;
 use App\Models\User;
+use App\Services\SubscriptionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -12,6 +13,13 @@ use Illuminate\Validation\Rules\Password;
 
 class OnboardingController extends Controller
 {
+    protected SubscriptionService $subscriptionService;
+
+    public function __construct(SubscriptionService $subscriptionService)
+    {
+        $this->subscriptionService = $subscriptionService;
+    }
+
     /**
      * Show the registration form for new users during onboarding.
      */
@@ -59,6 +67,9 @@ class OnboardingController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
         ]);
+
+        // Initialize trial for new user
+        $this->subscriptionService->initializeTrial($user);
 
         // Link the shop to the user and set webhook URL if provided
         $shopData = ['user_id' => $user->id];

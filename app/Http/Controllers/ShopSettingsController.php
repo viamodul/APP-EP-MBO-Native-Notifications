@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Shop;
+use App\Services\EpagesApiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
@@ -51,6 +52,26 @@ class ShopSettingsController extends Controller
 
         return redirect()->route('shops.show', $shop)
             ->with('success', 'Shop settings updated successfully.');
+    }
+
+    public function reactivate(Shop $shop)
+    {
+        $this->authorizeShop($shop);
+
+        // Test connection before reactivating
+        $apiService = new EpagesApiService($shop);
+        $result = $apiService->getOrdersWithResult(now());
+
+        if (!$result->isSuccess()) {
+            return redirect()->route('shops.show', $shop)
+                ->with('error', 'Cannot reactivate: API connection failed. ' . $result->getFailureReason());
+        }
+
+        // Connection successful - reactivate the shop
+        $shop->reactivate();
+
+        return redirect()->route('shops.show', $shop)
+            ->with('success', 'Shop reactivated successfully. API connection verified.');
     }
 
     protected function authorizeShop(Shop $shop): void

@@ -18,6 +18,67 @@
                 </div>
             @endif
 
+            @if (session('error'))
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                    {{ session('error') }}
+                </div>
+            @endif
+
+            {{-- Auto-deactivated shop warning --}}
+            @if ($shop->wasAutoDeactivated())
+                <div class="bg-red-50 border-l-4 border-red-400 p-4 rounded">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3 flex-1">
+                            <h3 class="text-sm font-medium text-red-800">Shop Auto-Deactivated</h3>
+                            <p class="mt-1 text-sm text-red-700">
+                                This shop was automatically deactivated on {{ $shop->deactivated_at->format('d/m/Y H:i') }}
+                                due to consecutive API failures.
+                            </p>
+                            @if ($shop->api_failure_reason)
+                                <p class="mt-1 text-sm text-red-600">
+                                    <strong>Reason:</strong> {{ $shop->api_failure_reason }}
+                                </p>
+                            @endif
+                            <div class="mt-3">
+                                <form action="{{ route('shops.reactivate', $shop) }}" method="POST" class="inline">
+                                    @csrf
+                                    <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-md text-sm hover:bg-red-700">
+                                        Test Connection & Reactivate
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @elseif ($shop->api_failure_count > 0)
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-yellow-800">API Connection Issues</h3>
+                            <p class="mt-1 text-sm text-yellow-700">
+                                This shop has {{ $shop->api_failure_count }} consecutive API failure(s).
+                                After 3 failures, the shop will be automatically deactivated.
+                            </p>
+                            @if ($shop->api_failure_reason)
+                                <p class="mt-1 text-sm text-yellow-600">
+                                    <strong>Last error:</strong> {{ $shop->api_failure_reason }}
+                                </p>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <!-- Shop Info -->
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">

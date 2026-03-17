@@ -13,6 +13,101 @@
                 </div>
             @endif
 
+            {{-- Subscription Usage Widget --}}
+            @php
+                $user = auth()->user();
+                $tierConfig = $user->getTierConfig();
+                $usagePercentage = $user->getUsagePercentage();
+                $webhooksLimit = $user->getWebhooksLimit();
+                $webhooksSent = $user->webhooks_sent_this_period;
+            @endphp
+
+            <div class="mb-6 bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                        <div class="flex items-center gap-4">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-lg font-semibold text-gray-900">{{ $tierConfig['name'] }} Plan</span>
+                                    @if ($user->isOnTrial())
+                                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                            {{ $user->daysUntilTrialExpires() }} {{ Str::plural('day', $user->daysUntilTrialExpires()) }} left
+                                        </span>
+                                    @elseif ($user->trialExpired())
+                                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                                            Trial Expired
+                                        </span>
+                                    @endif
+                                </div>
+                                @if ($webhooksLimit !== null)
+                                    <p class="text-sm text-gray-500 mt-1">
+                                        {{ number_format($webhooksSent) }} / {{ number_format($webhooksLimit) }} webhooks used
+                                    </p>
+                                @else
+                                    <p class="text-sm text-gray-500 mt-1">
+                                        {{ number_format($webhooksSent) }} webhooks sent (unlimited)
+                                    </p>
+                                @endif
+                            </div>
+                        </div>
+
+                        <div class="mt-4 md:mt-0 flex items-center gap-4">
+                            @if ($webhooksLimit !== null)
+                                <div class="w-32">
+                                    @php
+                                        $percentage = min(100, $usagePercentage ?? 0);
+                                        $barColor = match(true) {
+                                            $percentage >= 100 => 'bg-red-600',
+                                            $percentage >= 90 => 'bg-orange-500',
+                                            $percentage >= 75 => 'bg-yellow-500',
+                                            default => 'bg-green-600',
+                                        };
+                                    @endphp
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="{{ $barColor }} h-2 rounded-full transition-all duration-300"
+                                             style="width: {{ $percentage }}%"></div>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-1 text-center">{{ $percentage }}% used</p>
+                                </div>
+                            @endif
+
+                            <a href="{{ route('billing.index') }}"
+                               class="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                                @if ($user->isOnTrial() || $user->trialExpired())
+                                    Upgrade
+                                @else
+                                    View Plans
+                                @endif
+                            </a>
+                        </div>
+                    </div>
+
+                    @if ($usagePercentage >= 100)
+                        <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                            <div class="flex">
+                                <svg class="h-5 w-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                                <p class="text-sm text-red-700">
+                                    You've reached your webhook limit. <a href="{{ route('billing.index') }}" class="font-medium underline">Upgrade your plan</a> to continue receiving notifications.
+                                </p>
+                            </div>
+                        </div>
+                    @elseif ($user->trialExpired())
+                        <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                            <div class="flex">
+                                <svg class="h-5 w-5 text-yellow-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                                <p class="text-sm text-yellow-700">
+                                    Your trial has expired. <a href="{{ route('billing.index') }}" class="font-medium underline">Choose a plan</a> to continue using the service.
+                                </p>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
             @php
                 $shopsWithoutWebhook = $shops->filter(fn($shop) => !$shop->getRawOriginal('webhook_url'));
             @endphp

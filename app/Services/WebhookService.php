@@ -4,14 +4,43 @@ namespace App\Services;
 
 use App\Models\Shop;
 use App\Models\WebhookLog;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 class WebhookService
 {
-    public function sendOrderWebhook(Shop $shop, array $orderData): WebhookLog
+    /**
+     * Delay between webhooks to the same endpoint (in milliseconds).
+     */
+    protected int $webhookDelayMs;
+
+    protected SubscriptionService $subscriptionService;
+
+    public function __construct(?SubscriptionService $subscriptionService = null)
     {
+        $this->webhookDelayMs = (int) config('services.epages.webhook_delay_ms', 100);
+        $this->subscriptionService = $subscriptionService ?? new SubscriptionService();
+    }
+
+    /**
+     * Send order webhook.
+     * Returns WebhookLog on success, null if blocked by subscription limits.
+     */
+    public function sendOrderWebhook(Shop $shop, array $orderData): ?WebhookLog
+    {
+        // Check subscription limits
+        $user = $shop->user;
+        if ($user && !$this->subscriptionService->checkAndIncrementWebhookUsage($user)) {
+            Log::warning('Webhook blocked by subscription limit', [
+                'shop_id' => $shop->id,
+                'user_id' => $user->id,
+                'tier' => $user->subscription_tier,
+            ]);
+            return null;
+        }
+
         $payload = $this->createWebhookPayload($shop, $orderData);
         $webhookUrl = $this->getWebhookUrl($shop);
 
@@ -76,6 +105,9 @@ class WebhookService
             return;
         }
 
+        // Apply rate limiting per webhook endpoint
+        $this->applyRateLimit($webhookUrl);
+
         try {
             $http = Http::timeout(30)
                 ->withHeaders([
@@ -135,7 +167,7 @@ class WebhookService
 
         $webhookLog->increment('retry_count');
         $webhookLog->update(['status' => 'pending']);
-        
+
         $this->deliverWebhook($webhookLog);
     }
 
@@ -150,7 +182,32 @@ class WebhookService
         $billing = $orderData['billingAddress'] ?? [];
         $firstName = $billing['firstName'] ?? '';
         $lastName = $billing['lastName'] ?? '';
-        
+
         return trim($firstName . ' ' . $lastName) ?: 'Unknown Customer';
+    }
+
+    /**
+     * Apply rate limiting per webhook endpoint.
+     * Ensures minimum delay between requests to the same URL.
+     */
+    protected function applyRateLimit(string $webhookUrl): void
+    {
+        if ($this->webhookDelayMs <= 0) {
+            return;
+        }
+
+        $cacheKey = 'webhook_last_sent:' . md5($webhookUrl);
+        $lastSentMs = Cache::get($cacheKey, 0);
+        $nowMs = (int) (microtime(true) * 1000);
+
+        $elapsedMs = $nowMs - $lastSentMs;
+
+        if ($elapsedMs < $this->webhookDelayMs) {
+            $waitMs = $this->webhookDelayMs - $elapsedMs;
+            usleep($waitMs * 1000); // Convert ms to microseconds
+        }
+
+        // Update last sent timestamp
+        Cache::put($cacheKey, (int) (microtime(true) * 1000), 60); // TTL 60 seconds
     }
 }

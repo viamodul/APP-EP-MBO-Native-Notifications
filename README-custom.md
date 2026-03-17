@@ -68,10 +68,238 @@ POLL_SKIP_HISTORICAL_ORDERS=false
 - `config/services.php` - epages configuration
 - `app/Jobs/PollShopOrders.php` - skip logic implementation
 
+---
 
+## Protecção contra Lojas Indisponíveis (Auto-Deactivation)
+
+Quando uma loja deixa de existir ou a API deixa de responder, o sistema protege a queue de jobs acumulados desactivando automaticamente a loja após falhas consecutivas.
+
+### Problema que resolve
+
+Se uma loja for eliminada ou o token expirar, os jobs de polling continuariam a falhar indefinidamente, acumulando na queue e atrasando o processamento de outras lojas activas.
+
+### Como funciona
+
+```
+Polling Job executa
+    ↓
+API retorna erro (401, 403, 404, timeout, connection error)
+    ↓
+Incrementa api_failure_count
+    ↓
+Após 3 falhas consecutivas → Shop desactivada automaticamente
+    ↓
+Jobs futuros ignoram esta shop (active = false)
+```
+
+### Tipos de erro que contam para desactivação
+
+| Erro | Descrição | Conta? |
+|------|-----------|--------|
+| 404 | Shop não encontrada | Sim |
+| 401/403 | Token inválido ou expirado | Sim |
+| Timeout | Conexão expirou | Sim |
+| Connection Error | Loja inacessível | Sim |
+| 500+ | Erro temporário do servidor | Não (apenas log) |
+
+### Campos na tabela `shops`
+
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `api_failure_count` | int | Contador de falhas consecutivas (0-3) |
+| `api_last_failure_at` | timestamp | Data/hora da última falha |
+| `api_failure_reason` | string | Motivo da última falha |
+| `deactivated_at` | timestamp | Quando foi auto-desactivada |
+
+### Interface (página da loja)
+
+| Estado | Indicação Visual |
+|--------|------------------|
+| Activa, sem falhas | Badge verde "Active" |
+| Activa, 1-2 falhas | Badge verde + Alerta amarelo de aviso |
+| Auto-desactivada | Badge vermelho + Alerta vermelho + Botão "Reactivate" |
+
+### Reactivar uma loja
+
+1. Aceder à página da loja (`/shops/{id}`)
+2. Clicar em "Test Connection & Reactivate"
+3. O sistema testa a API antes de reactivar
+4. Se a conexão falhar, mostra erro e mantém inactiva
+5. Se a conexão funcionar, reactiva e reseta contadores
+
+**Via código:**
+```php
+$shop->reactivate(); // Reactiva e reseta contadores
+```
+
+### Logs gerados
+
+```
+# Aviso de falha (cada tentativa)
+[WARNING] API failure for shop {"shop_id":1, "failure_count":2, "max_failures":3}
+
+# Shop desactivada
+[ERROR] Shop auto-deactivated due to consecutive API failures {"shop_id":1, "final_reason":"Unauthorized"}
+```
+
+### Ficheiros envolvidos
+
+- `app/Models/Shop.php` - métodos `recordApiFailure()`, `recordApiSuccess()`, `reactivate()`
+- `app/Services/ApiResult.php` - classe de resultado estruturado da API
+- `app/Services/EpagesApiService.php` - método `getOrdersWithResult()`
+- `app/Jobs/PollShopOrders.php` - lógica de tratamento de falhas
+- `app/Http/Controllers/ShopSettingsController.php` - método `reactivate()`
+- `resources/views/shops/show.blade.php` - alertas visuais
+- `database/migrations/..._add_api_health_tracking_to_shops_table.php`
+
+---
+
+## Limpeza Automática de Webhook Logs
+
+Os webhook logs são automaticamente eliminados após o período de retenção configurado (default: 20 dias).
+
+### Configuração
+
+```bash
+# .env
+WEBHOOK_LOG_RETENTION_DAYS=20
+```
+
+### Comando manual
+
+```bash
+# Ver o que seria eliminado (sem apagar)
+php artisan webhooks:cleanup --dry-run
+
+# Executar limpeza
+php artisan webhooks:cleanup
+
+# Especificar dias manualmente
+php artisan webhooks:cleanup --days=30
+```
+
+### Execução automática
+
+O comando é executado automaticamente todos os dias às 03:00 via scheduler.
+
+```bash
+# Verificar scheduler
+php artisan schedule:list
+```
+
+**Ficheiros envolvidos:**
+- `app/Console/Commands/CleanupWebhookLogs.php`
+- `routes/console.php` (scheduler)
+- `config/services.php` (configuração)
+
+---
+
+## Rate Limiting de Webhooks
+
+Para evitar sobrecarregar servidores destino, há um delay configurável entre webhooks enviados para o mesmo endpoint.
+
+### Configuração
+
+```bash
+# .env
+WEBHOOK_DELAY_MS=100  # 100ms = ~600 webhooks/minuto por endpoint
+```
+
+| Valor | Webhooks/minuto | Uso recomendado |
+|-------|-----------------|-----------------|
+| 0 | Sem limite | Testes locais |
+| 50 | ~1200 | Servidor robusto |
+| 100 | ~600 | Default (recomendado) |
+| 200 | ~300 | Servidor com limites |
+| 1000 | ~60 | Muito conservador |
+
+### Como funciona
+
+- Cada endpoint (webhook URL) tem o seu próprio rate limit
+- Se várias shops usam o mesmo webhook URL, partilham o limite
+- O delay é aplicado apenas quando necessário (se o último envio foi recente)
+
+**Ficheiros envolvidos:**
+- `app/Services/WebhookService.php` (método `applyRateLimit`)
+- `config/services.php` (configuração)
+
+---
 
 ## TODO
-- on webhook_logs set a limit of time the orders are stored.
+
+---
+
+## ROADMAP: Sistema de Pagamentos e Subscrições
+
+### Decisões tomadas
+
+| Aspecto | Decisão |
+|---------|---------|
+| Trial | 14 dias, sem cartão |
+| Billing | Mensal ou anual (escolha do utilizador) |
+| Gestão de billing | Stripe (fora da app) |
+| Overage | Notificações em 50%, 75%, 90%, 100% + bloqueio |
+| Grandfathering | N/A (início com zero utilizadores) |
+
+### Tiers propostos
+
+| Tier | Shops | Webhooks/mês | Retenção logs | Polling min |
+|------|-------|--------------|---------------|-------------|
+| Trial | 1 | 100 | 7 dias | 5 min |
+| Starter | 1 | 1000 | 7 dias | 5 min |
+| Pro | 5 | 10000 | 30 dias | 1 min |
+| Business | Ilimitado | Ilimitado | 90 dias | 1 min |
+
+### Arquitectura
+
+```
+┌─────────────────┐         ┌─────────────────┐
+│     Stripe      │         │      App        │
+│  (billing)      │         │  (limites)      │
+├─────────────────┤         ├─────────────────┤
+│ - Planos/Preços │ ──────> │ - Tier activo   │
+│ - Subscriptions │ webhook │ - Limites       │
+│ - Pagamentos    │         │ - Contadores    │
+│ - Invoices      │         │ - Bloqueio      │
+│ - Trial period  │         │ - Notificações  │
+│ - Portal cliente│         │                 │
+└─────────────────┘         └─────────────────┘
+```
+
+### Responsabilidades da App
+
+1. **Guardar tier** - Receber webhook do Stripe, guardar tier no User
+2. **Contadores** - Contar webhooks enviados no período actual
+3. **Verificar limites** - Antes de enviar webhook, verificar se pode
+4. **Notificações email** - Avisar em 50%, 75%, 90%, 100%
+5. **Bloqueio** - Se 100% atingido, não envia webhooks
+6. **Reset** - No início de cada período, resetar contadores
+
+### Campos novos na tabela `users`
+
+```php
+tier: enum (trial, starter, pro, business)
+stripe_customer_id: string
+subscription_status: enum (trialing, active, past_due, canceled)
+webhooks_used_this_period: int
+period_starts_at: timestamp
+notified_at_50: boolean
+notified_at_75: boolean
+notified_at_90: boolean
+notified_at_100: boolean
+```
+
+### Implementação sugerida
+
+1. **Laravel Cashier** - Para integração com Stripe
+2. **Stripe Customer Portal** - Para gestão self-service (upgrade/downgrade/cancelar)
+3. **Webhooks do Stripe** - Para manter estado sincronizado
+
+### Botão na App
+
+Apenas um botão "Gerir Subscrição" que redireciona para o Stripe Customer Portal.
+
+---
 
 ## NEXT
 ### Ver como ligar as várias aplicações
@@ -94,8 +322,8 @@ POLL_SKIP_HISTORICAL_ORDERS=false
   * Lojas podem ser reactivadas por API;
   * Lojas podem ser reactivadas através da reactivação da própia conta;
   * Lojas poderm ser desactivadas por admin
-  * Lojas poderm ser desactivadas automaticamente, quando o endereço API da loja não existe mais ao fim de 5 tentativas - verificar a cada 24h durante 1 semana.
-  * Lojas poderm ser reactivadas por admin manualmente
+  * ~~Lojas poderm ser desactivadas automaticamente, quando o endereço API da loja não existe mais ao fim de 5 tentativas~~ **[IMPLEMENTADO]** - Ver secção "Protecção contra Lojas Indisponíveis"
+  * ~~Lojas poderm ser reactivadas por admin manualmente~~ **[IMPLEMENTADO]** - Botão "Reactivate" na página da loja
 
 ## Instalação através de App Store (Implementado)
 
@@ -237,6 +465,7 @@ Após autenticação, o utilizador tem acesso ao dashboard para gerir as suas lo
 | `/shops/{id}/webhooks` | GET | Lista de webhooks |
 | `/shops/{id}/webhooks/{id}` | GET | Detalhes do webhook |
 | `/shops/{id}/webhooks/{id}/retry` | POST | Reenviar webhook |
+| `/shops/{id}/reactivate` | POST | Reactivar loja desactivada |
 
 ---
 

@@ -21,6 +21,10 @@ class Shop extends Model
         'last_order_check',
         'last_processed_order_date',
         'active',
+        'api_failure_count',
+        'api_last_failure_at',
+        'api_failure_reason',
+        'deactivated_at',
         'source',
         'group_name',
     ];
@@ -29,6 +33,8 @@ class Shop extends Model
         'last_order_check' => 'datetime',
         'last_processed_order_date' => 'datetime',
         'active' => 'boolean',
+        'api_last_failure_at' => 'datetime',
+        'deactivated_at' => 'datetime',
         //'api_token' => 'encrypted',
     ];
 
@@ -65,5 +71,70 @@ class Shop extends Model
         }
 
         return $this->last_order_check->addMinutes($this->polling_interval_minutes) <= now();
+    }
+
+    /**
+     * Record an API failure and deactivate shop if threshold reached.
+     */
+    public function recordApiFailure(string $reason, int $maxFailures = 3): bool
+    {
+        $this->increment('api_failure_count');
+        $this->update([
+            'api_last_failure_at' => now(),
+            'api_failure_reason' => $reason,
+        ]);
+
+        if ($this->api_failure_count >= $maxFailures) {
+            $this->deactivate("Auto-deactivated after {$maxFailures} consecutive API failures: {$reason}");
+            return true; // Shop was deactivated
+        }
+
+        return false; // Shop still active
+    }
+
+    /**
+     * Reset API failure count on successful connection.
+     */
+    public function recordApiSuccess(): void
+    {
+        if ($this->api_failure_count > 0) {
+            $this->update([
+                'api_failure_count' => 0,
+                'api_failure_reason' => null,
+            ]);
+        }
+    }
+
+    /**
+     * Deactivate the shop.
+     */
+    public function deactivate(string $reason): void
+    {
+        $this->update([
+            'active' => false,
+            'deactivated_at' => now(),
+            'api_failure_reason' => $reason,
+        ]);
+    }
+
+    /**
+     * Reactivate the shop and reset failure tracking.
+     */
+    public function reactivate(): void
+    {
+        $this->update([
+            'active' => true,
+            'api_failure_count' => 0,
+            'api_failure_reason' => null,
+            'deactivated_at' => null,
+        ]);
+    }
+
+    /**
+     * Check if shop was auto-deactivated due to API failures.
+     */
+    public function wasAutoDeactivated(): bool
+    {
+        return !$this->active && $this->deactivated_at !== null;
     }
 }

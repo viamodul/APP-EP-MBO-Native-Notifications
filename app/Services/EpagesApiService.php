@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Shop;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -19,7 +20,10 @@ class EpagesApiService
         $this->baseUrl = rtrim($shop->shop_url, '/');
     }
 
-    public function getOrders(?Carbon $since = null): array
+    /**
+     * Get orders with structured result.
+     */
+    public function getOrdersWithResult(?Carbon $since = null): ApiResult
     {
         $endpoint = '/orders';
         $params = [
@@ -33,10 +37,10 @@ class EpagesApiService
 
         try {
             $response = $this->makeRequest('GET', $endpoint, $params);
-            
+
             if ($response->successful()) {
                 $data = $response->json();
-                return $data['items'] ?? [];
+                return ApiResult::success($data['items'] ?? []);
             }
 
             Log::error('Failed to fetch orders from ePages', [
@@ -45,15 +49,35 @@ class EpagesApiService
                 'body' => $response->body(),
             ]);
 
-            return [];
+            return ApiResult::fromHttpStatus($response->status(), $response->body());
+        } catch (ConnectionException $e) {
+            Log::error('Connection error fetching orders from ePages', [
+                'shop_id' => $this->shop->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            if (str_contains($e->getMessage(), 'timed out') || str_contains($e->getMessage(), 'timeout')) {
+                return ApiResult::timeout();
+            }
+
+            return ApiResult::connectionError($e->getMessage());
         } catch (\Exception $e) {
             Log::error('Exception fetching orders from ePages', [
                 'shop_id' => $this->shop->id,
                 'error' => $e->getMessage(),
             ]);
 
-            return [];
+            return new ApiResult(ApiResult::STATUS_UNKNOWN_ERROR, message: $e->getMessage());
         }
+    }
+
+    /**
+     * @deprecated Use getOrdersWithResult() for proper error handling
+     */
+    public function getOrders(?Carbon $since = null): array
+    {
+        $result = $this->getOrdersWithResult($since);
+        return $result->isSuccess() ? $result->data : [];
     }
 
     public function getOrder(string $orderId): ?array

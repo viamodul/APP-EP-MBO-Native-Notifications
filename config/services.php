@@ -38,6 +38,18 @@ return [
     'epages' => [
         'webhook_url' => env('WEBHOOK_URL', 'http://localhost:3000/webhook'),
         'skip_historical_orders' => env('POLL_SKIP_HISTORICAL_ORDERS', false),
+        'webhook_log_retention_days' => env('WEBHOOK_LOG_RETENTION_DAYS', 20),
+        'webhook_delay_ms' => env('WEBHOOK_DELAY_MS', 100), // delay between webhooks to same endpoint
+    ],
+
+    'stripe' => [
+        'model' => App\Models\User::class,
+        'key' => env('STRIPE_KEY'),
+        'secret' => env('STRIPE_SECRET'),
+        'webhook' => [
+            'secret' => env('STRIPE_WEBHOOK_SECRET'),
+            'tolerance' => env('STRIPE_WEBHOOK_TOLERANCE', 300),
+        ],
     ],
 
 ];

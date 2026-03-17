@@ -16,6 +16,11 @@ class PollShopOrders implements ShouldQueue
 
     protected Shop $shop;
 
+    /**
+     * Maximum consecutive API failures before deactivating shop.
+     */
+    protected int $maxApiFailures = 3;
+
     public function __construct(Shop $shop)
     {
         $this->shop = $shop;
@@ -23,6 +28,9 @@ class PollShopOrders implements ShouldQueue
 
     public function handle(): void
     {
+        // Refresh shop to get latest state
+        $this->shop->refresh();
+
         if (!$this->shop->shouldPoll()) {
             return;
         }
@@ -40,10 +48,22 @@ class PollShopOrders implements ShouldQueue
             Log::info('First poll: skipping historical orders, starting from now', ['shop_id' => $this->shop->id]);
         }
 
-        $orders = $apiService->getOrders($since);
+        // Get orders with structured result for proper error handling
+        $result = $apiService->getOrdersWithResult($since);
 
+        // Handle API failures - shop may be unavailable or deleted
+        if (!$result->isSuccess()) {
+            $this->handleApiFailure($result);
+            return;
+        }
+
+        // API call was successful - reset failure counter
+        $this->shop->recordApiSuccess();
+
+        $orders = $result->data;
         $newOrdersCount = 0;
         $latestOrderDate = $since;
+        $limitReached = false;
 
         foreach ($orders as $order) {
             $orderDate = $this->parseOrderDate($order);
@@ -53,7 +73,18 @@ class PollShopOrders implements ShouldQueue
             }
 
             try {
-                $webhookService->sendOrderWebhook($this->shop, $order);
+                $webhookLog = $webhookService->sendOrderWebhook($this->shop, $order);
+
+                // Check if webhook was blocked due to subscription limits
+                if ($webhookLog === null) {
+                    Log::warning('Webhook limit reached, stopping order processing', [
+                        'shop_id' => $this->shop->id,
+                        'user_id' => $this->shop->user_id,
+                    ]);
+                    $limitReached = true;
+                    break;
+                }
+
                 $newOrdersCount++;
 
                 if (!$latestOrderDate || $orderDate > $latestOrderDate) {
@@ -82,7 +113,50 @@ class PollShopOrders implements ShouldQueue
             'shop_id' => $this->shop->id,
             'new_orders' => $newOrdersCount,
             'total_orders_fetched' => count($orders),
+            'limit_reached' => $limitReached,
         ]);
+    }
+
+    /**
+     * Handle API failure and potentially deactivate shop.
+     */
+    protected function handleApiFailure(\App\Services\ApiResult $result): void
+    {
+        $reason = $result->getFailureReason();
+        $failureCount = $this->shop->api_failure_count + 1;
+
+        Log::warning('API failure for shop', [
+            'shop_id' => $this->shop->id,
+            'shop_name' => $this->shop->name,
+            'failure_reason' => $reason,
+            'failure_count' => $failureCount,
+            'max_failures' => $this->maxApiFailures,
+        ]);
+
+        // Only count shop unavailability errors towards deactivation
+        // Server errors (500) might be temporary, so we still count them but log differently
+        if ($result->isShopUnavailable()) {
+            $wasDeactivated = $this->shop->recordApiFailure($reason, $this->maxApiFailures);
+
+            if ($wasDeactivated) {
+                Log::error('Shop auto-deactivated due to consecutive API failures', [
+                    'shop_id' => $this->shop->id,
+                    'shop_name' => $this->shop->name,
+                    'shop_url' => $this->shop->shop_url,
+                    'final_reason' => $reason,
+                    'total_failures' => $this->maxApiFailures,
+                ]);
+            }
+        } else {
+            // For other errors (like 500), just log but don't count towards deactivation
+            Log::error('Temporary API error for shop', [
+                'shop_id' => $this->shop->id,
+                'reason' => $reason,
+            ]);
+        }
+
+        // Update last check time even on failure to prevent immediate retry
+        $this->shop->update(['last_order_check' => now()]);
     }
 
     protected function parseOrderDate(array $order): Carbon
