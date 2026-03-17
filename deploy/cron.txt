@@ -1,0 +1,4 @@
+# Laravel Scheduler - adicionar ao crontab do www-data
+# Editar com: sudo crontab -u www-data -e
+
+* * * * * cd /var/www/epages-webhooks && php artisan schedule:run >> /dev/null 2>&1
