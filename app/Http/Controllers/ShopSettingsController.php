@@ -27,8 +27,11 @@ class ShopSettingsController extends Controller
     {
         $this->authorizeShop($shop);
 
+        $minPolling = Auth::user()->getPollingIntervalMinutes();
+
         return view('shops.edit', [
             'shop' => $shop,
+            'minPollingInterval' => $minPolling,
         ]);
     }
 
@@ -36,18 +39,25 @@ class ShopSettingsController extends Controller
     {
         $this->authorizeShop($shop);
 
+        $minPolling = Auth::user()->getPollingIntervalMinutes();
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'webhook_url' => ['required', 'url'],
-            'polling_interval_minutes' => ['required', 'integer', 'min:1', 'max:60'],
+            'polling_interval_minutes' => ['required', 'integer', "min:{$minPolling}", 'max:60'],
             'active' => ['boolean'],
+            'push_notifications_enabled' => ['boolean'],
         ]);
+
+        $pushEnabled = $request->boolean('push_notifications_enabled')
+            && Auth::user()->tierAllowsPushNotifications();
 
         $shop->update([
             'name' => $validated['name'],
             'webhook_url' => $validated['webhook_url'],
             'polling_interval_minutes' => $validated['polling_interval_minutes'],
             'active' => $request->boolean('active'),
+            'push_notifications_enabled' => $pushEnabled,
         ]);
 
         return redirect()->route('shops.show', $shop)

@@ -2,10 +2,10 @@
     <x-slot name="header">
         <div class="flex justify-between items-center">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                Webhooks: {{ $shop->name }}
+                {{ __('Webhooks: :name', ['name' => $shop->name]) }}
             </h2>
             <a href="{{ route('shops.show', $shop) }}" class="text-indigo-600 hover:text-indigo-500 text-sm">
-                &larr; Back to Shop
+                &larr; {{ __('Back to Shop') }}
             </a>
         </div>
     </x-slot>
@@ -35,15 +35,15 @@
                             <input type="text"
                                    name="search"
                                    value="{{ $search ?? '' }}"
-                                   placeholder="Search by Order Number or Order ID..."
+                                   placeholder="{{ __('Search by Order Number or Order ID...') }}"
                                    class="flex-1 max-w-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
                             <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700">
-                                Search
+                                {{ __('Search') }}
                             </button>
                             @if($search ?? false)
                                 <a href="{{ route('shops.webhooks.index', array_filter(['shop' => $shop->id, 'status' => $currentStatus])) }}"
                                    class="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-md hover:bg-gray-300">
-                                    Clear
+                                    {{ __('Clear') }}
                                 </a>
                             @endif
                         </form>
@@ -53,35 +53,35 @@
                     <div class="mb-4 flex gap-2">
                         <a href="{{ route('shops.webhooks.index', array_filter(['shop' => $shop->id, 'search' => $search ?? null])) }}"
                            class="px-3 py-1 rounded-full text-sm {{ !$currentStatus ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
-                            All
+                            {{ __('All') }}
                         </a>
                         <a href="{{ route('shops.webhooks.index', array_filter(['shop' => $shop->id, 'status' => 'sent', 'search' => $search ?? null])) }}"
                            class="px-3 py-1 rounded-full text-sm {{ $currentStatus === 'sent' ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
-                            Sent
+                            {{ __('Sent') }}
                         </a>
                         <a href="{{ route('shops.webhooks.index', array_filter(['shop' => $shop->id, 'status' => 'failed', 'search' => $search ?? null])) }}"
                            class="px-3 py-1 rounded-full text-sm {{ $currentStatus === 'failed' ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
-                            Failed
+                            {{ __('Failed') }}
                         </a>
                         <a href="{{ route('shops.webhooks.index', array_filter(['shop' => $shop->id, 'status' => 'pending', 'search' => $search ?? null])) }}"
                            class="px-3 py-1 rounded-full text-sm {{ $currentStatus === 'pending' ? 'bg-yellow-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300' }}">
-                            Pending
+                            {{ __('Pending') }}
                         </a>
                     </div>
 
                     @if ($webhooks->isEmpty())
-                        <p class="text-gray-500">No webhooks found.</p>
+                        <p class="text-gray-500">{{ __('No webhooks found.') }}</p>
                     @else
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Response</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Retries</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
-                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ __('Order') }}</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ __('Status') }}</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ __('Response') }}</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ __('Retries') }}</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{{ __('Created') }}</th>
+                                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">{{ __('Actions') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200">
@@ -93,11 +93,11 @@
                                             </td>
                                             <td class="px-4 py-3">
                                                 @if ($webhook->status === 'sent')
-                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Sent</span>
+                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">{{ __('Sent') }}</span>
                                                 @elseif ($webhook->status === 'failed')
-                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Failed</span>
+                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">{{ __('Failed') }}</span>
                                                 @else
-                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>
+                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">{{ __('Pending') }}</span>
                                                 @endif
                                             </td>
                                             <td class="px-4 py-3 text-sm text-gray-500">
@@ -110,11 +110,11 @@
                                                 {{ $webhook->created_at->format('d/m/Y H:i') }}
                                             </td>
                                             <td class="px-4 py-3 text-right text-sm space-x-2">
-                                                <a href="{{ route('shops.webhooks.show', [$shop, $webhook]) }}" class="text-indigo-600 hover:text-indigo-900">View</a>
+                                                <a href="{{ route('shops.webhooks.show', [$shop, $webhook]) }}" class="text-indigo-600 hover:text-indigo-900">{{ __('View') }}</a>
                                                 @if ($webhook->status === 'failed' && $webhook->retry_count < 3)
                                                     <form action="{{ route('shops.webhooks.retry', [$shop, $webhook]) }}" method="POST" class="inline">
                                                         @csrf
-                                                        <button type="submit" class="text-orange-600 hover:text-orange-900">Retry</button>
+                                                        <button type="submit" class="text-orange-600 hover:text-orange-900">{{ __('Retry') }}</button>
                                                     </form>
                                                 @endif
                                             </td>

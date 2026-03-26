@@ -41,7 +41,18 @@
                             {{ __('Profile') }}
                         </x-dropdown-link>
 
+                        <!-- Language switcher -->
+                        <div class="border-t border-gray-100 my-1"></div>
+                        <div class="px-4 py-1 text-xs text-gray-400 uppercase tracking-wide">{{ __('Language') }}</div>
+                        <x-dropdown-link :href="route('language.switch', 'en')" class="{{ app()->getLocale() === 'en' ? 'font-semibold text-indigo-600' : '' }}">
+                            <x-flag-icon locale="en" /> English
+                        </x-dropdown-link>
+                        <x-dropdown-link :href="route('language.switch', 'de')" class="{{ app()->getLocale() === 'de' ? 'font-semibold text-indigo-600' : '' }}">
+                            <x-flag-icon locale="de" /> Deutsch
+                        </x-dropdown-link>
+
                         <!-- Authentication -->
+                        <div class="border-t border-gray-100 my-1"></div>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
 
@@ -88,6 +99,13 @@
             <div class="mt-3 space-y-1">
                 <x-responsive-nav-link :href="route('profile.edit')">
                     {{ __('Profile') }}
+                </x-responsive-nav-link>
+
+                <x-responsive-nav-link :href="route('language.switch', 'en')">
+                    <x-flag-icon locale="en" /> English
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('language.switch', 'de')">
+                    <x-flag-icon locale="de" /> Deutsch
                 </x-responsive-nav-link>
 
                 <!-- Authentication -->

@@ -5,7 +5,7 @@
                 {{ $shop->name }}
             </h2>
             <a href="{{ route('shops.edit', $shop) }}" class="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm hover:bg-indigo-700">
-                Edit Settings
+                {{ __('Edit Settings') }}
             </a>
         </div>
     </x-slot>
@@ -34,21 +34,20 @@
                             </svg>
                         </div>
                         <div class="ml-3 flex-1">
-                            <h3 class="text-sm font-medium text-red-800">Shop Auto-Deactivated</h3>
+                            <h3 class="text-sm font-medium text-red-800">{{ __('Shop Auto-Deactivated') }}</h3>
                             <p class="mt-1 text-sm text-red-700">
-                                This shop was automatically deactivated on {{ $shop->deactivated_at->format('d/m/Y H:i') }}
-                                due to consecutive API failures.
+                                {{ __('This shop was automatically deactivated on :date due to consecutive API failures.', ['date' => $shop->deactivated_at->format('d/m/Y H:i')]) }}
                             </p>
                             @if ($shop->api_failure_reason)
                                 <p class="mt-1 text-sm text-red-600">
-                                    <strong>Reason:</strong> {{ $shop->api_failure_reason }}
+                                    <strong>{{ __('Reason:') }}</strong> {{ $shop->api_failure_reason }}
                                 </p>
                             @endif
                             <div class="mt-3">
                                 <form action="{{ route('shops.reactivate', $shop) }}" method="POST" class="inline">
                                     @csrf
                                     <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-md text-sm hover:bg-red-700">
-                                        Test Connection & Reactivate
+                                        {{ __('Test Connection & Reactivate') }}
                                     </button>
                                 </form>
                             </div>
@@ -64,14 +63,13 @@
                             </svg>
                         </div>
                         <div class="ml-3">
-                            <h3 class="text-sm font-medium text-yellow-800">API Connection Issues</h3>
+                            <h3 class="text-sm font-medium text-yellow-800">{{ __('API Connection Issues') }}</h3>
                             <p class="mt-1 text-sm text-yellow-700">
-                                This shop has {{ $shop->api_failure_count }} consecutive API failure(s).
-                                After 3 failures, the shop will be automatically deactivated.
+                                {{ __('This shop has :count consecutive API failure(s). After 3 failures, the shop will be automatically deactivated.', ['count' => $shop->api_failure_count]) }}
                             </p>
                             @if ($shop->api_failure_reason)
                                 <p class="mt-1 text-sm text-yellow-600">
-                                    <strong>Last error:</strong> {{ $shop->api_failure_reason }}
+                                    <strong>{{ __('Last error:') }}</strong> {{ $shop->api_failure_reason }}
                                 </p>
                             @endif
                         </div>
@@ -82,37 +80,67 @@
             <!-- Shop Info -->
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Shop Information</h3>
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">{{ __('Shop Information') }}</h3>
                     <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
-                            <dt class="text-sm font-medium text-gray-500">Shop URL</dt>
+                            <dt class="text-sm font-medium text-gray-500">{{ __('Shop URL') }}</dt>
                             <dd class="mt-1 text-sm text-gray-900">{{ $shop->shop_url }}</dd>
                         </div>
                         <div>
-                            <dt class="text-sm font-medium text-gray-500">Status</dt>
+                            <dt class="text-sm font-medium text-gray-500">{{ __('Status') }}</dt>
                             <dd class="mt-1">
                                 @if ($shop->active)
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">{{ __('Active') }}</span>
                                 @else
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Inactive</span>
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">{{ __('Inactive') }}</span>
                                 @endif
                             </dd>
                         </div>
                         <div>
-                            <dt class="text-sm font-medium text-gray-500">Webhook URL</dt>
+                            <dt class="text-sm font-medium text-gray-500">{{ __('Webhook URL') }}</dt>
                             <dd class="mt-1 text-sm text-gray-900 break-all">{{ $shop->webhook_url }}</dd>
                         </div>
                         <div>
-                            <dt class="text-sm font-medium text-gray-500">Polling Interval</dt>
-                            <dd class="mt-1 text-sm text-gray-900">Every {{ $shop->polling_interval_minutes }} minutes</dd>
+                            <dt class="text-sm font-medium text-gray-500">{{ __('Polling Interval') }}</dt>
+                            <dd class="mt-1 text-sm text-gray-900">{{ __('Every :n minutes', ['n' => $shop->polling_interval_minutes]) }}</dd>
                         </div>
                         <div>
-                            <dt class="text-sm font-medium text-gray-500">Last Check</dt>
-                            <dd class="mt-1 text-sm text-gray-900">{{ $shop->last_order_check ? $shop->last_order_check->format('d/m/Y H:i:s') : 'Never' }}</dd>
+                            <dt class="text-sm font-medium text-gray-500">{{ __('Last Check') }}</dt>
+                            <dd class="mt-1 text-sm text-gray-900">{{ $shop->last_order_check ? $shop->last_order_check->format('d/m/Y H:i:s') : __('Never') }}</dd>
                         </div>
                         <div>
-                            <dt class="text-sm font-medium text-gray-500">Total Webhooks Sent</dt>
+                            <dt class="text-sm font-medium text-gray-500">{{ __('Total Webhooks Sent') }}</dt>
                             <dd class="mt-1 text-sm text-gray-900">{{ $shop->webhook_logs_count }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Push Notifications -->
+            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-lg font-medium text-gray-900">{{ __('Push Notifications') }}</h3>
+                        <a href="{{ route('shops.edit', $shop) }}" class="text-sm text-indigo-600 hover:text-indigo-500">{{ __('Manage in Settings') }}</a>
+                    </div>
+                    <dl class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">{{ __('Push for this shop') }}</dt>
+                            <dd class="mt-1">
+                                @if (!auth()->user()->tierAllowsPushNotifications())
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-500">{{ __('Not available on your plan') }}</span>
+                                @elseif ($shop->push_notifications_enabled)
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">{{ __('Enabled') }}</span>
+                                @else
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-600">{{ __('Disabled') }}</span>
+                                @endif
+                            </dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">{{ __('Device subscriptions') }}</dt>
+                            <dd class="mt-1 text-sm text-gray-900">
+                                {{ __(':count device(s) subscribed', ['count' => auth()->user()->pushSubscriptions()->count()]) }}
+                            </dd>
                         </div>
                     </dl>
                 </div>
@@ -122,21 +150,21 @@
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
                     <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-medium text-gray-900">Recent Webhooks</h3>
-                        <a href="{{ route('shops.webhooks.index', $shop) }}" class="text-sm text-indigo-600 hover:text-indigo-500">View all</a>
+                        <h3 class="text-lg font-medium text-gray-900">{{ __('Recent Webhooks') }}</h3>
+                        <a href="{{ route('shops.webhooks.index', $shop) }}" class="text-sm text-indigo-600 hover:text-indigo-500">{{ __('View all') }}</a>
                     </div>
 
                     @if ($recentWebhooks->isEmpty())
-                        <p class="text-gray-500 text-sm">No webhooks sent yet.</p>
+                        <p class="text-gray-500 text-sm">{{ __('No webhooks sent yet.') }}</p>
                     @else
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
-                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Order ID</th>
-                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Sent At</th>
-                                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{{ __('Order ID') }}</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{{ __('Status') }}</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{{ __('Sent At') }}</th>
+                                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">{{ __('Actions') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200">
@@ -145,16 +173,16 @@
                                             <td class="px-4 py-2 text-sm text-gray-900">{{ Str::limit($webhook->order_id, 20) }}</td>
                                             <td class="px-4 py-2">
                                                 @if ($webhook->status === 'sent')
-                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Sent</span>
+                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">{{ __('Sent') }}</span>
                                                 @elseif ($webhook->status === 'failed')
-                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Failed</span>
+                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">{{ __('Failed') }}</span>
                                                 @else
-                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>
+                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">{{ __('Pending') }}</span>
                                                 @endif
                                             </td>
                                             <td class="px-4 py-2 text-sm text-gray-500">{{ $webhook->sent_at ? $webhook->sent_at->diffForHumans() : '-' }}</td>
                                             <td class="px-4 py-2 text-right">
-                                                <a href="{{ route('shops.webhooks.show', [$shop, $webhook]) }}" class="text-indigo-600 hover:text-indigo-900 text-sm">View</a>
+                                                <a href="{{ route('shops.webhooks.show', [$shop, $webhook]) }}" class="text-indigo-600 hover:text-indigo-900 text-sm">{{ __('View') }}</a>
                                             </td>
                                         </tr>
                                     @endforeach

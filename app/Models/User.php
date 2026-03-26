@@ -17,6 +17,16 @@ class User extends Authenticatable
         return $this->hasMany(Shop::class);
     }
 
+    public function pushSubscriptions(): HasMany
+    {
+        return $this->hasMany(PushSubscription::class);
+    }
+
+    public function tierAllowsPushNotifications(): bool
+    {
+        return (bool) ($this->getTierConfig()['push_notifications'] ?? false);
+    }
+
     /**
      * The attributes that are mass assignable.
      *
@@ -26,6 +36,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'locale',
         'subscription_tier',
         'webhooks_sent_this_period',
         'billing_period_started_at',

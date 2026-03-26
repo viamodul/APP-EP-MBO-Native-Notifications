@@ -18,7 +18,8 @@ return [
             'shops_limit' => 1,
             'webhooks_limit' => 100,
             'log_retention_days' => 7,
-            'polling_interval_minutes' => 5,
+            'polling_interval_minutes' => 5, // minimum 5 min
+            'push_notifications' => true,
             'trial_days' => 14,
             'visible' => true,
             'prices' => [
@@ -32,7 +33,8 @@ return [
             'shops_limit' => 1,
             'webhooks_limit' => 1000,
             'log_retention_days' => 7,
-            'polling_interval_minutes' => 5,
+            'polling_interval_minutes' => 10, // minimum 10 min
+            'push_notifications' => false,
             'trial_days' => 0,
             'visible' => true,
             'prices' => [
@@ -50,7 +52,8 @@ return [
             'shops_limit' => 5,
             'webhooks_limit' => 10000,
             'log_retention_days' => 30,
-            'polling_interval_minutes' => 1,
+            'polling_interval_minutes' => 5, // minimum 5 min
+            'push_notifications' => true,
             'trial_days' => 0,
             'visible' => true,
             'prices' => [
@@ -68,7 +71,8 @@ return [
             'shops_limit' => null, // Unlimited
             'webhooks_limit' => null, // Unlimited
             'log_retention_days' => 90,
-            'polling_interval_minutes' => 1,
+            'polling_interval_minutes' => 5, // minimum 5 min
+            'push_notifications' => true,
             'trial_days' => 0,
             'visible' => true,
             'prices' => [
@@ -86,7 +90,8 @@ return [
             'shops_limit' => null, // Unlimited
             'webhooks_limit' => null, // Unlimited
             'log_retention_days' => 90,
-            'polling_interval_minutes' => 1,
+            'polling_interval_minutes' => 5, // minimum 5 min
+            'push_notifications' => true,
             'trial_days' => 0,
             'visible' => false, // Hidden tier for internal use
             'prices' => [

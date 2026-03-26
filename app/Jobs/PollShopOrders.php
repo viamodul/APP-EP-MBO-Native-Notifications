@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Shop;
 use App\Services\EpagesApiService;
+use App\Services\PushNotificationService;
 use App\Services\WebhookService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -39,6 +40,7 @@ class PollShopOrders implements ShouldQueue
 
         $apiService = new EpagesApiService($this->shop);
         $webhookService = new WebhookService();
+        $pushService = new PushNotificationService();
 
         $since = $this->shop->last_processed_order_date;
 
@@ -86,6 +88,9 @@ class PollShopOrders implements ShouldQueue
                 }
 
                 $newOrdersCount++;
+
+                // Send push notification to shop owner
+                $pushService->sendToShopOwner($this->shop, $this->buildPushPayload($order));
 
                 if (!$latestOrderDate || $orderDate > $latestOrderDate) {
                     $latestOrderDate = $orderDate;
@@ -163,5 +168,37 @@ class PollShopOrders implements ShouldQueue
     {
         $dateField = $order['creationDate'] ?? $order['created_at'] ?? $order['date'] ?? now()->toISOString();
         return Carbon::parse($dateField);
+    }
+
+    protected function buildPushPayload(array $order): array
+    {
+        $orderId = $order['orderId'] ?? $order['id'] ?? 'unknown';
+        $orderNumber = $order['orderNumber'] ?? $orderId;
+        $total = isset($order['priceInfo']['totalPrice']['amount'])
+            ? number_format((float) $order['priceInfo']['totalPrice']['amount'], 2)
+            : null;
+        $currency = $order['priceInfo']['totalPrice']['currency'] ?? '';
+        $billing = $order['billingAddress'] ?? [];
+        $customerName = trim(($billing['firstName'] ?? '') . ' ' . ($billing['lastName'] ?? ''));
+
+        $bodyParts = ["Order #{$orderNumber}"];
+        if ($total) {
+            $bodyParts[] = "€{$total} {$currency}";
+        }
+        if ($customerName) {
+            $bodyParts[] = $customerName;
+        }
+
+        return [
+            'title' => $this->shop->name,
+            'body' => implode(' | ', $bodyParts),
+            'icon' => '/favicon.ico',
+            'badge' => '/favicon.ico',
+            'data' => [
+                'url' => '/shops/' . $this->shop->id,
+                'shop_id' => $this->shop->id,
+                'order_id' => $orderId,
+            ],
+        ];
     }
 }

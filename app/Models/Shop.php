@@ -21,6 +21,7 @@ class Shop extends Model
         'last_order_check',
         'last_processed_order_date',
         'active',
+        'push_notifications_enabled',
         'api_failure_count',
         'api_last_failure_at',
         'api_failure_reason',
@@ -33,6 +34,7 @@ class Shop extends Model
         'last_order_check' => 'datetime',
         'last_processed_order_date' => 'datetime',
         'active' => 'boolean',
+        'push_notifications_enabled' => 'boolean',
         'api_last_failure_at' => 'datetime',
         'deactivated_at' => 'datetime',
         //'api_token' => 'encrypted',
@@ -60,8 +62,11 @@ class Shop extends Model
 
     public function shouldPoll(): bool
     {
-        //JUST for test pourposes
-        return true;
+        // In local/development, always poll (ignores interval for easier testing)
+        if (app()->isLocal()) {
+            return true;
+        }
+
         if (!$this->active) {
             return false;
         }

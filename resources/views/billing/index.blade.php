@@ -21,20 +21,20 @@
 
             @if (request('checkout') === 'success')
                 <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-                    Your subscription has been activated! Welcome aboard.
+                    {{ __('Your subscription has been activated! Welcome aboard.') }}
                 </div>
             @endif
 
             @if (request('checkout') === 'cancelled')
                 <div class="mb-4 bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
-                    Checkout was cancelled. You can try again when you're ready.
+                    {{ __("Checkout was cancelled. You can try again when you're ready.") }}
                 </div>
             @endif
 
             {{-- Current Plan & Usage --}}
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
                 <div class="p-6">
-                    <h3 class="text-lg font-medium text-gray-900 mb-4">Current Plan</h3>
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">{{ __('Current Plan') }}</h3>
 
                     <div class="flex flex-col md:flex-row md:items-center md:justify-between">
                         <div>
@@ -42,35 +42,35 @@
                                 <span class="text-2xl font-bold text-gray-900">{{ $tierConfig['name'] }}</span>
                                 @if ($isOnTrial)
                                     <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                                        Trial - {{ $daysUntilTrialExpires }} {{ Str::plural('day', $daysUntilTrialExpires) }} left
+                                        {{ __('Trial - :days days left', ['days' => $daysUntilTrialExpires]) }}
                                     </span>
                                 @elseif ($trialExpired)
                                     <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                                        Trial Expired
+                                        {{ __('Trial Expired') }}
                                     </span>
                                 @elseif ($user->subscription('default')?->onGracePeriod())
                                     <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                        Cancels at period end
+                                        {{ __('Cancels at period end') }}
                                     </span>
                                 @endif
                             </div>
 
                             <ul class="mt-2 text-sm text-gray-600 space-y-1">
                                 <li>
-                                    <span class="font-medium">Shops:</span>
-                                    {{ $tierConfig['shops_limit'] ?? 'Unlimited' }}
+                                    <span class="font-medium">{{ __('Shops:') }}</span>
+                                    {{ $tierConfig['shops_limit'] ?? __('Unlimited') }}
                                 </li>
                                 <li>
-                                    <span class="font-medium">Webhooks/month:</span>
-                                    {{ $tierConfig['webhooks_limit'] ? number_format($tierConfig['webhooks_limit']) : 'Unlimited' }}
+                                    <span class="font-medium">{{ __('Webhooks/month:') }}</span>
+                                    {{ $tierConfig['webhooks_limit'] ? number_format($tierConfig['webhooks_limit']) : __('Unlimited') }}
                                 </li>
                                 <li>
-                                    <span class="font-medium">Log retention:</span>
-                                    {{ $tierConfig['log_retention_days'] }} days
+                                    <span class="font-medium">{{ __('Log retention:') }}</span>
+                                    {{ __(':days days', ['days' => $tierConfig['log_retention_days']]) }}
                                 </li>
                                 <li>
-                                    <span class="font-medium">Polling interval:</span>
-                                    {{ $tierConfig['polling_interval_minutes'] }} {{ Str::plural('minute', $tierConfig['polling_interval_minutes']) }}
+                                    <span class="font-medium">{{ __('Polling interval:') }}</span>
+                                    {{ __(':n minutes', ['n' => $tierConfig['polling_interval_minutes']]) }}
                                 </li>
                             </ul>
                         </div>
@@ -79,7 +79,7 @@
                             <div class="mt-4 md:mt-0">
                                 <a href="{{ route('billing.portal') }}"
                                    class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">
-                                    Manage Subscription
+                                    {{ __('Manage Subscription') }}
                                 </a>
                             </div>
                         @endif
@@ -89,7 +89,7 @@
                     @if ($webhooksLimit !== null)
                         <div class="mt-6">
                             <div class="flex justify-between text-sm text-gray-600 mb-1">
-                                <span>Webhooks used this period</span>
+                                <span>{{ __('Webhooks used this period') }}</span>
                                 <span>{{ number_format($webhooksSent) }} / {{ number_format($webhooksLimit) }}</span>
                             </div>
                             <div class="w-full bg-gray-200 rounded-full h-2.5">
@@ -107,11 +107,11 @@
                             </div>
                             @if ($usagePercentage >= 100)
                                 <p class="mt-2 text-sm text-red-600">
-                                    You've reached your webhook limit. Upgrade your plan to continue receiving notifications.
+                                    {{ __("You've reached your webhook limit. Upgrade your plan to continue receiving notifications.") }}
                                 </p>
                             @elseif ($remainingWebhooks !== null)
                                 <p class="mt-2 text-sm text-gray-500">
-                                    {{ number_format($remainingWebhooks) }} webhooks remaining
+                                    {{ __(':count webhooks remaining', ['count' => number_format($remainingWebhooks)]) }}
                                 </p>
                             @endif
                         </div>
@@ -121,7 +121,7 @@
                                 <svg class="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                 </svg>
-                                <span>Unlimited webhooks - {{ number_format($webhooksSent) }} sent this period</span>
+                                <span>{{ __('Unlimited webhooks - :count sent this period', ['count' => number_format($webhooksSent)]) }}</span>
                             </div>
                         </div>
                     @endif
@@ -132,7 +132,7 @@
             @if ($isOnTrial || $trialExpired || !$user->isOnPaidTier())
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
-                        <h3 class="text-lg font-medium text-gray-900 mb-6">Choose a Plan</h3>
+                        <h3 class="text-lg font-medium text-gray-900 mb-6">{{ __('Choose a Plan') }}</h3>
 
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
                             @foreach ($tiers as $tierKey => $tier)
@@ -140,7 +140,7 @@
                                     @if ($tierKey === 'pro')
                                         <div class="text-center mb-2">
                                             <span class="px-3 py-1 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-800">
-                                                Most Popular
+                                                {{ __('Most Popular') }}
                                             </span>
                                         </div>
                                     @endif
@@ -149,12 +149,12 @@
 
                                     <div class="mt-4 text-center">
                                         <span class="text-4xl font-bold text-gray-900">EUR {{ number_format($tier['prices']['monthly'] / 100) }}</span>
-                                        <span class="text-gray-500">/month</span>
+                                        <span class="text-gray-500">/{{ __('month') }}</span>
                                     </div>
 
                                     <p class="mt-1 text-center text-sm text-gray-500">
-                                        or EUR {{ number_format($tier['prices']['yearly'] / 100) }}/year
-                                        <span class="text-green-600">(save {{ round((1 - ($tier['prices']['yearly'] / ($tier['prices']['monthly'] * 12))) * 100) }}%)</span>
+                                        {{ __('or EUR :price/year', ['price' => number_format($tier['prices']['yearly'] / 100)]) }}
+                                        <span class="text-green-600">({{ __('save :percent%', ['percent' => round((1 - ($tier['prices']['yearly'] / ($tier['prices']['monthly'] * 12))) * 100)]) }})</span>
                                     </p>
 
                                     <ul class="mt-6 space-y-3">
@@ -162,25 +162,25 @@
                                             <svg class="w-5 h-5 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                             </svg>
-                                            {{ $tier['shops_limit'] ?? 'Unlimited' }} {{ Str::plural('shop', $tier['shops_limit'] ?? 2) }}
+                                            {{ ($tier['shops_limit'] ?? __('Unlimited')) . ' ' . Str::plural(__('shop'), $tier['shops_limit'] ?? 2) }}
                                         </li>
                                         <li class="flex items-center text-sm text-gray-600">
                                             <svg class="w-5 h-5 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                             </svg>
-                                            {{ $tier['webhooks_limit'] ? number_format($tier['webhooks_limit']) : 'Unlimited' }} webhooks/month
+                                            {{ ($tier['webhooks_limit'] ? number_format($tier['webhooks_limit']) : __('Unlimited')) . ' ' . __('webhooks/month') }}
                                         </li>
                                         <li class="flex items-center text-sm text-gray-600">
                                             <svg class="w-5 h-5 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                             </svg>
-                                            {{ $tier['log_retention_days'] }}-day log retention
+                                            {{ __(':days-day log retention', ['days' => $tier['log_retention_days']]) }}
                                         </li>
                                         <li class="flex items-center text-sm text-gray-600">
                                             <svg class="w-5 h-5 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                             </svg>
-                                            {{ $tier['polling_interval_minutes'] }}-minute polling
+                                            {{ __(':n-minute polling', ['n' => $tier['polling_interval_minutes']]) }}
                                         </li>
                                     </ul>
 
@@ -191,7 +191,7 @@
                                             <input type="hidden" name="interval" value="monthly">
                                             <button type="submit"
                                                     class="w-full px-4 py-2 {{ $tierKey === 'pro' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-800 hover:bg-gray-700' }} border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest">
-                                                Subscribe Monthly
+                                                {{ __('Subscribe Monthly') }}
                                             </button>
                                         </form>
                                         <form action="{{ route('billing.checkout') }}" method="POST">
@@ -200,7 +200,7 @@
                                             <input type="hidden" name="interval" value="yearly">
                                             <button type="submit"
                                                     class="w-full px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest hover:bg-gray-50">
-                                                Subscribe Yearly
+                                                {{ __('Subscribe Yearly') }}
                                             </button>
                                         </form>
                                     </div>
@@ -215,26 +215,26 @@
             @if ($user->subscription('default'))
                 <div class="mt-6 bg-white overflow-hidden shadow-sm sm:rounded-lg">
                     <div class="p-6">
-                        <h3 class="text-lg font-medium text-gray-900 mb-4">Subscription Management</h3>
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">{{ __('Subscription Management') }}</h3>
 
                         <div class="flex flex-wrap gap-4">
                             <a href="{{ route('billing.portal') }}"
                                class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">
-                                Update Payment Method
+                                {{ __('Update Payment Method') }}
                             </a>
 
                             <a href="{{ route('billing.portal') }}"
                                class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest hover:bg-gray-50">
-                                View Invoices
+                                {{ __('View Invoices') }}
                             </a>
 
                             @if ($user->subscription('default')->active() && !$user->subscription('default')->onGracePeriod())
                                 <form action="{{ route('billing.cancel') }}" method="POST"
-                                      onsubmit="return confirm('Are you sure you want to cancel your subscription?');">
+                                      onsubmit="return confirm('{{ __('Are you sure you want to cancel your subscription?') }}');">
                                     @csrf
                                     <button type="submit"
                                             class="inline-flex items-center px-4 py-2 bg-white border border-red-300 rounded-md font-semibold text-xs text-red-700 uppercase tracking-widest hover:bg-red-50">
-                                        Cancel Subscription
+                                        {{ __('Cancel Subscription') }}
                                     </button>
                                 </form>
                             @elseif ($user->subscription('default')->onGracePeriod())
@@ -242,7 +242,7 @@
                                     @csrf
                                     <button type="submit"
                                             class="inline-flex items-center px-4 py-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700">
-                                        Resume Subscription
+                                        {{ __('Resume Subscription') }}
                                     </button>
                                 </form>
                             @endif
