@@ -46,16 +46,21 @@ CREATE USER 'epages_user'@'localhost' IDENTIFIED BY 'PASSWORD_SEGURA';
 GRANT ALL PRIVILEGES ON epages_webhooks.* TO 'epages_user'@'localhost';
 FLUSH PRIVILEGES;
 EXIT;
+
+Trocar password:
+ALTER USER 'epages_user'@'localhost' IDENTIFIED BY 'WWetr$433442#sdaWWetr$433442#sda';
+FLUSH PRIVILEGES;
+EXIT;
 ```
 
 ## 3. Clonar Projecto
 
 ```bash
-sudo mkdir -p /var/www/epages-webhooks
-sudo chown $USER:www-data /var/www/epages-webhooks
-cd /var/www
-git clone SEU_REPOSITORIO_GIT epages-webhooks
-cd epages-webhooks
+sudo mkdir -p /var/www/html/APP-EP-MBO-Native-Notifications
+sudo chown $USER:www-data /var/www/html/APP-EP-MBO-Native-Notifications
+cd /var/www/html
+git clone https://github.com/viamodul/APP-EP-MBO-Native-Notifications.git APP-EP-MBO-Native-Notifications
+cd APP-EP-MBO-Native-Notifications
 ```
 
 ## 4. Configurar Aplicação
