@@ -8,10 +8,12 @@ use App\Models\PushSubscription;
 use Minishlink\WebPush\WebPush;
 use Minishlink\WebPush\Subscription;
 use Illuminate\Support\Facades\Log;
+use App\Services\SubscriptionService;
 
 class PushNotificationService
 {
     private WebPush $webPush;
+    private SubscriptionService $subscriptionService;
 
     public function __construct()
     {
@@ -22,6 +24,7 @@ class PushNotificationService
                 'privateKey' => config('webpush.vapid.private_key'),
             ],
         ]);
+        $this->subscriptionService = new SubscriptionService();
     }
 
     /**
@@ -37,6 +40,14 @@ class PushNotificationService
         $user = $shop->user;
 
         if (!$user || !$user->tierAllowsPushNotifications()) {
+            return;
+        }
+
+        if (!$this->subscriptionService->checkAndIncrementWebhookUsage($user)) {
+            Log::info('Push notification blocked by subscription limit', [
+                'shop_id' => $shop->id,
+                'user_id' => $user->id,
+            ]);
             return;
         }
 

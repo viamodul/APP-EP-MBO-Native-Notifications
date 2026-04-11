@@ -75,7 +75,7 @@ class Shop extends Model
             return true;
         }
 
-        return $this->last_order_check->addMinutes($this->polling_interval_minutes) <= now();
+        return $this->last_order_check->addMinutes($this->polling_interval_minutes)->subSeconds(30) <= now();
     }
 
     /**
