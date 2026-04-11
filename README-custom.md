@@ -44,6 +44,44 @@ This is a Laravel-based ePages webhook notification system that acts as an order
   When execute, for each new order call the webhook:
   WEBHOOK_URL=https://webhook.site/76056518-e842-41c2-8dd4-92cd9f52552f
 
+## Testar Queues em Desenvolvimento
+
+### Fluxo típico
+
+Num terminal, iniciar o worker:
+```bash
+php artisan queue:work
+```
+
+Noutro terminal, colocar jobs na queue:
+```bash
+php artisan shops:poll
+```
+
+### Comandos úteis
+
+| Comando | Descrição |
+|---------|-----------|
+| `php artisan queue:work` | Processa jobs continuamente (modo daemon) |
+| `php artisan queue:work --once` | Processa apenas um job e para (útil para debug) |
+| `php artisan queue:work --verbose` | Processa com output detalhado |
+| `php artisan queue:failed` | Lista jobs falhados |
+| `php artisan queue:retry <uuid>` | Retry de um job falhado específico |
+| `php artisan queue:retry all` | Retry de todos os jobs falhados |
+| `php artisan shops:poll --sync` | Corre o polling imediatamente sem passar pela queue |
+
+### Forçar polling de uma shop (reset do último check)
+
+```bash
+# Reset de uma shop específica
+php artisan tinker --execute="App\Models\Shop::first()->update(['last_order_check' => null]);"
+
+# Reset de todas as shops
+php artisan tinker --execute="App\Models\Shop::query()->update(['last_order_check' => null]);"
+```
+
+---
+
 ## Run date from when get orders
 
 On first poll (when `last_processed_order_date` is NULL), you can control whether to fetch historical orders or start from now.

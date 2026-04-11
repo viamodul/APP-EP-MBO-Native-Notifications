@@ -18,6 +18,14 @@
                     <x-nav-link :href="route('billing.index')" :active="request()->routeIs('billing.*')">
                         {{ __('Billing') }}
                     </x-nav-link>
+                    @php
+                        $adminEmails = array_map('trim', explode(',', env('ADMIN_EMAILS', '')));
+                    @endphp
+                    @if(in_array(Auth::user()->email, array_filter($adminEmails)))
+                    <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.*')">
+                        Admin
+                    </x-nav-link>
+                    @endif
                 </div>
             </div>
 
@@ -87,6 +95,11 @@
             <x-responsive-nav-link :href="route('billing.index')" :active="request()->routeIs('billing.*')">
                 {{ __('Billing') }}
             </x-responsive-nav-link>
+            @if(in_array(Auth::user()->email, array_filter($adminEmails)))
+            <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.*')">
+                Admin
+            </x-responsive-nav-link>
+            @endif
         </div>
 
         <!-- Responsive Settings Options -->

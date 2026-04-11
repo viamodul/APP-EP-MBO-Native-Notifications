@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\BillingController;
 use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\DashboardController;
@@ -65,5 +66,12 @@ Route::prefix('epages/onboarding')->name('epages.onboarding.')->group(function (
 
 // Stripe webhooks (excluded from CSRF in bootstrap/app.php)
 Route::post('/stripe/webhook', [StripeWebhookController::class, 'handleWebhook'])->name('stripe.webhook');
+
+// Admin routes
+Route::middleware(['auth', 'verified', \App\Http\Middleware\IsAdmin::class])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/', [AdminController::class, 'index'])->name('dashboard');
+    Route::get('/users/{user}', [AdminController::class, 'showUser'])->name('users.show');
+    Route::patch('/users/{user}', [AdminController::class, 'updateUser'])->name('users.update');
+});
 
 require __DIR__.'/auth.php';

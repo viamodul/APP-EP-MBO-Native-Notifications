@@ -62,6 +62,12 @@ class InstallController extends Controller
             ]);
         }
 
+        Log::info('ePages token data received', [
+            'token_keys' => array_keys($tokenData),
+            'scope' => $tokenData['scope'] ?? 'not present',
+            'token_type' => $tokenData['token_type'] ?? 'not present',
+        ]);
+
         // Store shop credentials
         $shopId = $this->extractShopId($apiUrl);
 

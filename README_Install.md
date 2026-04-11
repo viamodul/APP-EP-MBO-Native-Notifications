@@ -97,14 +97,14 @@ sudo chmod -R 775 storage bootstrap/cache
 
 ```bash
 # Copiar config
-sudo cp deploy/nginx.conf /etc/nginx/sites-available/epages-webhooks
+sudo cp deploy/nginx.conf /etc/nginx/sites-available/epageswebhooksapp.viamodul.eu
 
 # Editar domínio
-sudo nano /etc/nginx/sites-available/epages-webhooks
+sudo nano /etc/nginx/sites-available/epageswebhooksapp.viamodul.eu
 # Substituir SEU_DOMINIO.com pelo domínio real
 
 # Activar site
-sudo ln -s /etc/nginx/sites-available/epages-webhooks /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/epageswebhooksapp.viamodul.eu /etc/nginx/sites-enabled/
 
 # Remover default (opcional)
 sudo rm /etc/nginx/sites-enabled/default
@@ -117,14 +117,14 @@ sudo systemctl restart nginx
 ## 6. SSL com Let's Encrypt
 
 ```bash
-sudo certbot --nginx -d SEU_DOMINIO.com
+sudo certbot --nginx -d epageswebhooksapp.viamodul.eu
 ```
 
 ## 7. Configurar Supervisor (Queue Worker)
 
 ```bash
 # Copiar config
-sudo cp deploy/supervisor.conf /etc/supervisor/conf.d/epages-webhooks.conf
+sudo cp deploy/supervisor.conf /etc/supervisor/conf.d/epageswebhooksapp.viamodul.eu.conf
 
 # Recarregar
 sudo supervisorctl reread
@@ -140,7 +140,7 @@ sudo crontab -u www-data -e
 
 Adicionar:
 ```
-* * * * * cd /var/www/epages-webhooks && php artisan schedule:run >> /dev/null 2>&1
+* * * * * cd /var/www/html/APP-EP-MBO-Native-Notifications && php artisan schedule:run >> /dev/null 2>&1
 ```
 
 ## 9. Stripe Produção
@@ -148,7 +148,7 @@ Adicionar:
 1. Ir a https://dashboard.stripe.com (modo Live)
 2. Copiar chaves pk_live_* e sk_live_* para .env
 3. Criar webhook endpoint:
-   - URL: `https://SEU_DOMINIO.com/stripe/webhook`
+   - URL: `https://epageswebhooksapp.viamodul.eu/stripe/webhook`
    - Eventos:
      - customer.subscription.created
      - customer.subscription.updated
@@ -165,7 +165,7 @@ Adicionar:
 sudo supervisorctl status
 
 # Verificar logs
-tail -f /var/www/epages-webhooks/storage/logs/laravel.log
+tail -f /var/www/html/APP-EP-MBO-Native-Notifications/storage/logs/laravel.log
 
 # Testar scheduler
 php artisan schedule:list

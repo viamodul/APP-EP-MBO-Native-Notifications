@@ -43,7 +43,7 @@ class ShopSettingsController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'webhook_url' => ['required', 'url'],
+            'webhook_url' => ['nullable', 'url'],
             'polling_interval_minutes' => ['required', 'integer', "min:{$minPolling}", 'max:60'],
             'active' => ['boolean'],
             'push_notifications_enabled' => ['boolean'],
@@ -86,7 +86,10 @@ class ShopSettingsController extends Controller
 
     protected function authorizeShop(Shop $shop): void
     {
-        if ($shop->user_id !== Auth::id()) {
+        $adminEmails = array_map('trim', explode(',', env('ADMIN_EMAILS', '')));
+        $isAdmin = in_array(Auth::user()->email, array_filter($adminEmails));
+
+        if (!$isAdmin && $shop->user_id !== Auth::id()) {
             abort(403, 'You do not have access to this shop.');
         }
     }
